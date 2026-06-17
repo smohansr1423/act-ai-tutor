@@ -1,0 +1,17 @@
+# Stage 1: Build Flutter web app
+FROM ghcr.io/cirruslabs/flutter:stable AS build
+
+WORKDIR /app
+COPY mobile/ ./mobile/
+
+WORKDIR /app/mobile
+RUN flutter pub get
+RUN flutter build web --release --dart-define=API_BASE_URL=https://act-ai-tutor-production.up.railway.app/api
+
+# Stage 2: Serve with lightweight Node server
+FROM node:20-alpine
+WORKDIR /app
+RUN npm install -g serve@14
+COPY --from=build /app/mobile/build/web ./public
+EXPOSE 3001
+CMD ["serve", "public", "-s", "-l", "tcp://0.0.0.0:3001"]
