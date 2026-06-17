@@ -5,7 +5,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { registerUser, isAuthError, RegisterRequest } from './auth.service';
+import { registerUser, loginUser, isAuthError, RegisterRequest, LoginRequest } from './auth.service';
 import { Role } from '../models/enums';
 
 const router = Router();
@@ -43,6 +43,36 @@ router.post('/register', async (req: Request, res: Response) => {
     return res.status(201).json(result);
   } catch (error: any) {
     console.error('Registration error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/auth/login
+ * Authenticates a user and returns a JWT token.
+ *
+ * Body: { email, password }
+ * Response 200: { userId, token }
+ * Response 401: { error } - invalid credentials or account locked
+ */
+router.post('/login', async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    const input: LoginRequest = {
+      email: email ?? '',
+      password: password ?? '',
+    };
+
+    const result = await loginUser(input);
+
+    if (isAuthError(result)) {
+      return res.status(401).json({ error: result.message });
+    }
+
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error('Login error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
