@@ -76,6 +76,21 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.1.0' });
 });
 
+// Database health check - temporary debug endpoint
+app.get('/health/db', async (_req: Request, res: Response) => {
+  try {
+    const { checkDatabaseHealth } = await import('./utils/database');
+    const healthy = await checkDatabaseHealth();
+    res.json({ 
+      db: healthy ? 'connected' : 'failed',
+      hasDbUrl: !!process.env.DATABASE_URL,
+      dbUrlPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 30) + '...' : 'NOT SET'
+    });
+  } catch (err: any) {
+    res.json({ db: 'error', error: err.message, hasDbUrl: !!process.env.DATABASE_URL });
+  }
+});
+
 // ─── Public Routes (no auth required) ─────────────────────────────────────────
 
 app.use('/api/auth', authRoutes);
