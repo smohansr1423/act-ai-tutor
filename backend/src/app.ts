@@ -73,7 +73,7 @@ app.use(rateLimiter);
 // ─── Health Check (public) ────────────────────────────────────────────────────
 
 app.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.1.0' });
 });
 
 // ─── Public Routes (no auth required) ─────────────────────────────────────────
