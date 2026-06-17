@@ -6,6 +6,9 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci
 
 COPY backend/ .
+
+# Cache bust - forces fresh build
+ARG CACHEBUST=1
 RUN npm run build
 RUN npm prune --production
 
