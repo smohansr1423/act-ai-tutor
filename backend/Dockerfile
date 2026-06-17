@@ -2,13 +2,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci --only=production=false
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci
 
-COPY . .
+COPY backend/ .
 RUN npm run build
-
-# Remove dev dependencies after build
 RUN npm prune --production
 
 EXPOSE 3000
