@@ -1,21 +1,44 @@
-name: CI
+name: Build Flutter Web and Deploy
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
 jobs:
-  test-backend:
+  build-flutter-web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - name: Install dependencies
-        working-directory: backend
-        run: npm ci
-      - name: Run tests
-        working-directory: backend
-        run: npm test -- --passWithNoTests
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        working-directory: mobile
+        run: flutter pub get
+
+      - name: Build web
+        working-directory: mobile
+        run: flutter build web --release --dart-define=API_BASE_URL=https://act-ai-tutor-production.up.railway.app/api
+
+      - name: Copy build to backend/public
+        run: |
+          rm -rf backend/public
+          cp -r mobile/build/web backend/public
+
+      - name: Commit and push
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add backend/public/
+          git diff --staged --quiet || git commit -m "Auto-build: Update Flutter web app"
+          git push
