@@ -18,6 +18,7 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
+import path from 'path';
 import { authenticate } from './middleware/auth.middleware';
 import { requestLogger, rateLimiter } from './middleware/request.middleware';
 import { registerEventHandlers } from './events';
@@ -89,10 +90,21 @@ app.use('/api/chat', authenticate, chatRoutes);
 app.use('/api/analytics', authenticate, analyticsRoutes);
 app.use('/api/analytics', authenticate, parentDashboardRoutes);
 
-// ─── 404 Handler ──────────────────────────────────────────────────────────────
+// ─── Static Frontend Serving ──────────────────────────────────────────────────
 
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ error: 'Endpoint not found' });
+const publicPath = path.join(__dirname, '..', 'public');
+app.use(express.static(publicPath));
+
+// ─── 404 Handler (serve index.html for SPA routes) ────────────────────────────
+
+app.use((req: Request, res: Response) => {
+  // If it's an API route, return 404 JSON
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({ error: 'Endpoint not found' });
+    return;
+  }
+  // Otherwise serve the SPA
+  res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
