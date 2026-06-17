@@ -44,12 +44,14 @@ router.post('/register', async (req: Request, res: Response) => {
       userId: result.userId,
       token: result.token,
       user: {
-        userId: result.userId,
+        user_id: result.userId,
         name: (name ?? '').trim(),
         email: (email ?? '').toLowerCase(),
         role: role,
         grade: grade || null,
-        targetScore: targetScore || null,
+        target_score: targetScore || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }
     });
   } catch (error: any) {
@@ -84,7 +86,7 @@ router.post('/login', async (req: Request, res: Response) => {
     // Fetch user data for the response
     const { queryOne } = await import('../utils/database');
     const userData = await queryOne<any>(
-      'SELECT user_id, name, email, role, grade, target_score FROM users WHERE user_id = $1',
+      'SELECT user_id, name, email, role, grade, target_score, created_at, updated_at FROM users WHERE user_id = $1',
       [result.userId]
     );
 
@@ -92,12 +94,14 @@ router.post('/login', async (req: Request, res: Response) => {
       userId: result.userId,
       token: result.token,
       user: userData ? {
-        userId: userData.user_id,
+        user_id: userData.user_id,
         name: userData.name,
         email: userData.email,
         role: userData.role,
         grade: userData.grade,
-        targetScore: userData.target_score,
+        target_score: userData.target_score,
+        created_at: userData.created_at ? new Date(userData.created_at).toISOString() : new Date().toISOString(),
+        updated_at: userData.updated_at ? new Date(userData.updated_at).toISOString() : new Date().toISOString(),
       } : null
     });
   } catch (error: any) {
