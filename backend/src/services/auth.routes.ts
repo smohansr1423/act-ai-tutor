@@ -40,7 +40,18 @@ router.post('/register', async (req: Request, res: Response) => {
       return res.status(statusCode).json({ error: result.message });
     }
 
-    return res.status(201).json(result);
+    return res.status(201).json({
+      userId: result.userId,
+      token: result.token,
+      user: {
+        userId: result.userId,
+        name: (name ?? '').trim(),
+        email: (email ?? '').toLowerCase(),
+        role: role,
+        grade: grade || null,
+        targetScore: targetScore || null,
+      }
+    });
   } catch (error: any) {
     console.error('Registration error:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -70,7 +81,25 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: result.message });
     }
 
-    return res.status(200).json(result);
+    // Fetch user data for the response
+    const { queryOne } = await import('../utils/database');
+    const userData = await queryOne<any>(
+      'SELECT user_id, name, email, role, grade, target_score FROM users WHERE user_id = $1',
+      [result.userId]
+    );
+
+    return res.status(200).json({
+      userId: result.userId,
+      token: result.token,
+      user: userData ? {
+        userId: userData.user_id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        grade: userData.grade,
+        targetScore: userData.target_score,
+      } : null
+    });
   } catch (error: any) {
     console.error('Login error:', error);
     return res.status(500).json({ error: 'Internal server error' });
