@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.dart_tool/
+.packages
+
+# Build outputs
+dist/
+build/
+*.js.map
+
+# Environment files (NEVER commit these)
+.env
+.env.local
+.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+
+# Logs
+*.log
+
+# Flutter
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
