@@ -48631,7 +48631,7 @@ A.Ok.prototype={
 F(a){var s,r,q,p,o,n=null
 A.bcl()
 s=new A.a9N(A.b([],t.O))
-r=new A.Ow("http://192.168.1.84:3000/api",s)
+r=new A.Ow("https://act-ai-tutor-production.up.railway.app/api",s)
 s=$.aPJ
 if(s==null){s=new A.ab2()
 $.aPJ=s}q=new A.PO(s,new A.d5(n,n,t.J6))
