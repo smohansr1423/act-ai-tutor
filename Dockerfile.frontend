@@ -1,5 +1,13 @@
 # Stage 1: Build Flutter web app
-FROM ghcr.io/cirruslabs/flutter:stable AS build
+FROM ubuntu:22.04 AS build
+
+RUN apt-get update && apt-get install -y curl git unzip xz-utils zip && rm -rf /var/lib/apt/lists/*
+
+# Install Flutter
+RUN git clone https://github.com/flutter/flutter.git /flutter --branch stable --depth 1
+ENV PATH="/flutter/bin:/flutter/bin/cache/dart-sdk/bin:${PATH}"
+RUN flutter doctor -v
+RUN flutter config --no-analytics
 
 WORKDIR /app
 COPY mobile/ ./mobile/
