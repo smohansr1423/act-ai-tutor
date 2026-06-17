@@ -187,10 +187,12 @@ class _ActiveTestScaffold extends StatelessWidget {
         title: _TimerDisplay(formattedTime: state.formattedTime),
         actions: [
           IconButton(
-            icon: const Icon(Icons.grid_view),
+            icon: Semantics(
+              label: 'Open question navigator grid',
+              child: const Icon(Icons.grid_view),
+            ),
             onPressed: () => _showQuestionGrid(context),
             tooltip: 'Question Navigator',
-            semanticLabel: 'Open question navigator grid',
           ),
           TextButton(
             onPressed: () => _showSubmitConfirmation(context),

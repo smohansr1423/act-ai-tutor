@@ -8,7 +8,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 /// Requirements: 4.9 - Detect connectivity loss during full test mode
 class ConnectivityService {
   final Connectivity _connectivity;
-  StreamSubscription<List<ConnectivityResult>>? _subscription;
+  StreamSubscription<ConnectivityResult>? _subscription;
 
   final _connectivityController = StreamController<bool>.broadcast();
 
@@ -26,9 +26,8 @@ class ConnectivityService {
   /// Start monitoring connectivity changes.
   void startMonitoring() {
     _subscription = _connectivity.onConnectivityChanged.listen(
-      (results) {
-        final connected = results.isNotEmpty &&
-            !results.every((r) => r == ConnectivityResult.none);
+      (ConnectivityResult result) {
+        final connected = result != ConnectivityResult.none;
         if (connected != _isConnected) {
           _isConnected = connected;
           _connectivityController.add(connected);
@@ -39,9 +38,8 @@ class ConnectivityService {
 
   /// Check current connectivity status.
   Future<bool> checkConnectivity() async {
-    final results = await _connectivity.checkConnectivity();
-    _isConnected = results.isNotEmpty &&
-        !results.every((r) => r == ConnectivityResult.none);
+    final result = await _connectivity.checkConnectivity();
+    _isConnected = result != ConnectivityResult.none;
     return _isConnected;
   }
 
