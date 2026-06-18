@@ -36,7 +36,7 @@ router.post('/practice/start', async (req: Request, res: Response) => {
     const request: StartPracticeRequest = {
       userId: userId || req.user?.userId || '',
       section: (section as SessionSection) ?? '',
-      mode: mode ?? '',
+      mode: mode || 'section',
     };
 
     const result = await startPracticeSession(request);
