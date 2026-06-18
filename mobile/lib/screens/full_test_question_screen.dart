@@ -353,9 +353,22 @@ class _QuestionContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final questionText = question['questionText'] as String? ?? '';
-    final options = question['options'] as List<dynamic>? ?? [];
+    final questionText = (question['questionText'] ?? question['question_text'] ?? '') as String;
+    final rawOptions = question['options'];
     final labels = ['A', 'B', 'C', 'D'];
+    
+    // Options can be a Map {"A": "text", "B": "text"} or a List
+    List<String> optionTexts = [];
+    if (rawOptions is Map) {
+      for (final label in labels) {
+        final value = rawOptions[label];
+        if (value != null) {
+          optionTexts.add(value.toString());
+        }
+      }
+    } else if (rawOptions is List) {
+      optionTexts = rawOptions.map((e) => e.toString()).toList();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,12 +383,10 @@ class _QuestionContent extends StatelessWidget {
         const SizedBox(height: 24),
         // Answer options — highlight only, no correctness feedback
         ...List.generate(
-          options.length.clamp(0, 4),
+          optionTexts.length.clamp(0, 4),
           (i) {
             final label = labels[i];
-            final optionText = options[i] is String
-                ? options[i] as String
-                : (options[i] as Map<String, dynamic>)['text'] as String? ?? '';
+            final optionText = optionTexts[i];
             final isSelected = selectedAnswer == label;
 
             return Padding(
