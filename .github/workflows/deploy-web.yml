@@ -28,7 +28,7 @@ jobs:
 
       - name: Build web
         working-directory: mobile
-        run: flutter build web --release --dart-define=API_BASE_URL=https://act-ai-tutor-production.up.railway.app/api
+        run: flutter build web --release --web-renderer html --dart-define=API_BASE_URL=https://act-ai-tutor-production.up.railway.app/api
 
       - name: Copy build to backend/public
         run: |
