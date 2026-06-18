@@ -108,7 +108,17 @@ app.use('/api/analytics', authenticate, parentDashboardRoutes);
 // ─── Static Frontend Serving ──────────────────────────────────────────────────
 
 const publicPath = path.join(__dirname, '..', 'public');
-app.use(express.static(publicPath));
+
+// Disable caching for HTML and JS to ensure fresh Flutter web app loads
+app.use(express.static(publicPath, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('flutter_service_worker.js')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // ─── 404 Handler (serve index.html for SPA routes) ────────────────────────────
 

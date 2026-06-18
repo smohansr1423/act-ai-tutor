@@ -76,9 +76,11 @@ class PracticeBloc extends Bloc<PracticeEvent, PracticeState> {
       }
     } on ApiException catch (e) {
       emit(PracticeError(message: e.message));
-    } catch (e) {
-      emit(const PracticeError(
-        message: 'Failed to start practice session. Please try again.',
+    } catch (e, stackTrace) {
+      print('Practice session error: $e');
+      print('Stack trace: $stackTrace');
+      emit(PracticeError(
+        message: 'Failed to start practice session: ${e.toString()}',
       ));
     }
   }
