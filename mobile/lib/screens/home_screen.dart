@@ -107,7 +107,7 @@ class HomeScreen extends StatelessWidget {
                   title: 'Study Plan',
                   subtitle: 'Personalized daily study goals',
                   color: Colors.teal,
-                  onTap: () => Navigator.of(context).pushNamed(AppRouter.studyPlan),
+                  onTap: () => Navigator.of(context).pushNamed(AppRouter.analytics),
                 ),
               ],
             ),
