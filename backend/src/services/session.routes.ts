@@ -34,7 +34,7 @@ router.post('/practice/start', async (req: Request, res: Response) => {
     const { userId, section, mode } = req.body;
 
     const request: StartPracticeRequest = {
-      userId: userId ?? '',
+      userId: userId || req.user?.userId || '',
       section: (section as SessionSection) ?? '',
       mode: mode ?? '',
     };

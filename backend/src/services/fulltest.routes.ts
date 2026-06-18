@@ -41,7 +41,7 @@ router.post('/start', async (req: Request, res: Response) => {
     const { userId, section } = req.body;
 
     const request: StartFullTestRequest = {
-      userId: userId ?? '',
+      userId: userId || req.user?.userId || '',
       section: (section as SessionSection) ?? '',
     };
 
