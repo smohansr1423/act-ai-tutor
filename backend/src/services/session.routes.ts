@@ -16,6 +16,10 @@ import {
   resumeSession,
   isSessionInterruptError,
 } from './session-interrupt.service';
+import {
+  PerformanceService,
+  isSubmitAnswerError,
+} from './performance.service';
 import { SessionSection } from '../models/enums';
 
 const router = Router();
@@ -86,6 +90,39 @@ router.post('/practice/next', async (req: Request, res: Response) => {
     return res.status(200).json(result);
   } catch (error: any) {
     console.error('Practice next question error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/sessions/practice/submit
+ * Submits an answer for the current question in a practice session.
+ *
+ * Body: { sessionId, questionId, selectedAnswer, timeTaken }
+ * Response 200: { isCorrect, explanation, correctAnswer, strategyTip, incorrectReasoning }
+ * Response 400: { error } - validation failures
+ * Response 404: { error } - session/question not found
+ */
+router.post('/practice/submit', async (req: Request, res: Response) => {
+  try {
+    const { sessionId, questionId, selectedAnswer, timeTaken } = req.body;
+
+    const performanceService = new PerformanceService();
+    const result = await performanceService.submitAnswer({
+      sessionId: sessionId ?? '',
+      questionId: questionId ?? '',
+      selectedAnswer: selectedAnswer ?? '',
+      timeTaken: typeof timeTaken === 'number' ? timeTaken : 0.1,
+    });
+
+    if (isSubmitAnswerError(result)) {
+      const statusCode = result.error.includes('not found') ? 404 : 400;
+      return res.status(statusCode).json({ error: result.error });
+    }
+
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error('Practice submit error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

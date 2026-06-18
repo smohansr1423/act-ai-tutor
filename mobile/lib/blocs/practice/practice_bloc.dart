@@ -221,9 +221,9 @@ class PracticeBloc extends Bloc<PracticeEvent, PracticeState> {
 
     try {
       final response = await apiService.post(
-        '/questions/generate',
+        '/sessions/practice/next',
         body: {
-          'section': _currentSection?.value ?? 'mixed',
+          'sessionId': _sessionId,
         },
       );
 
