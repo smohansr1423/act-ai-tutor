@@ -170,12 +170,12 @@ export async function startPracticeSession(
     return { message: 'Invalid section. Must be one of: english, math, reading, science, mixed' };
   }
 
-  if (!mode || !['section', 'mixed', 'practice'].includes(mode)) {
+  if (!mode || !['section', 'mixed', 'practice'].includes(mode as string)) {
     return { message: 'Invalid mode. Must be "section" or "mixed"' };
   }
 
   // Normalize 'practice' mode to 'section'
-  const normalizedMode = mode === 'practice' ? 'section' : mode;
+  const normalizedMode: 'section' | 'mixed' = (mode as string) === 'mixed' ? 'mixed' : 'section';
 
   // For section mode with a specific section, ensure it's not 'mixed'
   if (normalizedMode === 'section' && section === SessionSection.Mixed) {
@@ -183,7 +183,7 @@ export async function startPracticeSession(
   }
 
   // Fetch questions from Question_Bank
-  const questions = await fetchQuestions(section, normalizedMode as 'section' | 'mixed');
+  const questions = await fetchQuestions(section, normalizedMode);
 
   if (questions.length === 0) {
     return { message: 'No questions available for the selected section. Please try again later.' };
