@@ -8814,7 +8814,7 @@ oU:function oU(a,b,c,d,e,f,g,h,i){var _=this
 _.at=a
 _.ax=null
 _.ay=0
-_.cx=_.CW=_.ch=null
+_.cx=_.ch=null
 _.db=_.cy=0
 _.dx=b
 _.e=c
@@ -47770,37 +47770,35 @@ n.db=n.cy=0
 B.b.a7(n.dx)
 n.ay=0
 n.cx=n.ch=null
-g=a.a
-n.CW=g
 p=4
 s=7
-return A.I(n.at.l0("/sessions/practice/start",A.af(["section",g.c,"mode","practice"],t.N,t.z)),$async$zr)
+return A.I(n.at.l0("/sessions/practice/start",A.af(["section",a.a.c,"mode","practice"],t.N,t.z)),$async$zr)
 case 7:m=a1
 n.ch=A.bN(J.aG(m,"sessionId"))
 l=t.nA.a(J.aG(m,"firstQuestion"))
 if(l!=null){try{n.cx=A.aLU(l)}catch(c){k=A.ah(c)
-g=A.j(k)
+f=A.j(k)
 e=A.j(J.v_(J.Aa(l)))
-if(!b.d)b.a.$1(new A.k1("Parse error: "+g+" | Keys: "+e))
+if(!b.d)b.a.$1(new A.k1("Parse error: "+f+" | Keys: "+e))
 s=1
 break}n.Sz()
-g=n.cx
-g.toString
-if(!b.d)b.a.$1(new A.ii(g,0,null,null,!1))}else if(!b.d)b.a.$1(B.S7)
+f=n.cx
+f.toString
+if(!b.d)b.a.$1(new A.ii(f,0,null,null,!1))}else if(!b.d)b.a.$1(B.S7)
 p=2
 s=6
 break
 case 4:p=3
 d=o
-g=A.ah(d)
-if(g instanceof A.f6){j=g
-g=j.b
-if(!b.d)b.a.$1(new A.k1(g))}else{i=g
+f=A.ah(d)
+if(f instanceof A.f6){j=f
+f=j.b
+if(!b.d)b.a.$1(new A.k1(f))}else{i=f
 h=A.aM(d)
 A.nx("Practice session error: "+A.j(i))
 A.nx("Stack trace: "+A.j(h))
-g=J.el(i)
-if(!b.d)b.a.$1(new A.k1("Failed to start practice session: "+g))}s=6
+f=J.el(i)
+if(!b.d)b.a.$1(new A.k1("Failed to start practice session: "+f))}s=6
 break
 case 3:s=2
 break
@@ -47893,10 +47891,8 @@ var $async$zh=A.K(function(c,d){if(c===1){p=d
 s=q}while(true)switch(s){case 0:if(!b.d)b.a.$1(B.oi)
 o.ay=0
 q=3
-l=o.CW
-l=l==null?null:l.c
 s=6
-return A.I(o.at.l0("/questions/generate",A.af(["section",l==null?"mixed":l],t.N,t.z)),$async$zh)
+return A.I(o.at.l0("/sessions/practice/next",A.af(["sessionId",o.ch],t.N,t.z)),$async$zh)
 case 6:n=d
 o.cx=A.aLU(n)
 o.Sz()
