@@ -28,45 +28,64 @@ const defaultConfig: CacheConfig = {
 /** Singleton Redis client instance */
 let redisClient: RedisClientType | null = null;
 let isConnected = false;
+let connectionFailed = false;
+
+/** In-memory fallback cache when Redis is unavailable */
+const memoryCache = new Map<string, { value: string; expiresAt: number }>();
 
 /**
  * Get the Redis client instance.
  * Creates and connects the client on first call (lazy initialization).
+ * Returns null if Redis is unavailable (falls back to in-memory cache).
  */
-export async function getRedisClient(): Promise<RedisClientType> {
+export async function getRedisClient(): Promise<RedisClientType | null> {
+  if (connectionFailed) {
+    return null;
+  }
+
   if (!redisClient) {
-    redisClient = createClient({
-      url: defaultConfig.url,
-      socket: {
-        reconnectStrategy: (retries: number) => {
-          if (retries >= defaultConfig.maxRetries) {
-            console.error('Redis: max reconnection attempts reached');
-            return new Error('Max Redis reconnection attempts reached');
-          }
-          return defaultConfig.retryDelayMs * Math.pow(2, retries);
+    try {
+      redisClient = createClient({
+        url: defaultConfig.url,
+        socket: {
+          reconnectStrategy: (retries: number) => {
+            if (retries >= defaultConfig.maxRetries) {
+              console.error('Redis: max reconnection attempts reached');
+              connectionFailed = true;
+              return new Error('Max Redis reconnection attempts reached');
+            }
+            return defaultConfig.retryDelayMs * Math.pow(2, retries);
+          },
+          connectTimeout: 5000,
         },
-        connectTimeout: 10000,
-      },
-    }) as RedisClientType;
+      }) as RedisClientType;
 
-    redisClient.on('error', (err) => {
-      console.error('Redis client error:', err);
-      isConnected = false;
-    });
+      redisClient.on('error', (err) => {
+        if (!connectionFailed) {
+          console.error('Redis client error:', err.message);
+        }
+        isConnected = false;
+      });
 
-    redisClient.on('connect', () => {
-      isConnected = true;
-    });
+      redisClient.on('connect', () => {
+        isConnected = true;
+      });
 
-    redisClient.on('disconnect', () => {
-      isConnected = false;
-    });
+      redisClient.on('disconnect', () => {
+        isConnected = false;
+      });
 
-    redisClient.on('reconnecting', () => {
-      console.warn('Redis client reconnecting...');
-    });
+      redisClient.on('reconnecting', () => {
+        console.warn('Redis client reconnecting...');
+      });
 
-    await redisClient.connect();
+      await redisClient.connect();
+    } catch (err: any) {
+      console.warn('[Cache] Redis unavailable, using in-memory fallback:', err.message);
+      connectionFailed = true;
+      redisClient = null;
+      return null;
+    }
   }
 
   return redisClient;
@@ -91,11 +110,20 @@ export async function cacheSet(
   value: unknown,
   ttlSeconds?: number
 ): Promise<void> {
-  const client = await getRedisClient();
   const serialized = JSON.stringify(value);
   const ttl = ttlSeconds ?? defaultConfig.defaultTtlSeconds;
+  const fullKey = prefixKey(key);
 
-  await client.set(prefixKey(key), serialized, { EX: ttl });
+  const client = await getRedisClient();
+  if (client) {
+    await client.set(fullKey, serialized, { EX: ttl });
+  } else {
+    // In-memory fallback
+    memoryCache.set(fullKey, {
+      value: serialized,
+      expiresAt: Date.now() + ttl * 1000,
+    });
+  }
 }
 
 /**
@@ -105,17 +133,30 @@ export async function cacheSet(
  * @returns Parsed value or null if not found/expired
  */
 export async function cacheGet<T = unknown>(key: string): Promise<T | null> {
+  const fullKey = prefixKey(key);
+
   const client = await getRedisClient();
-  const value = await client.get(prefixKey(key));
-
-  if (value === null) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
+  if (client) {
+    const value = await client.get(fullKey);
+    if (value === null) return null;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
+  } else {
+    // In-memory fallback
+    const entry = memoryCache.get(fullKey);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      memoryCache.delete(fullKey);
+      return null;
+    }
+    try {
+      return JSON.parse(entry.value) as T;
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -126,9 +167,14 @@ export async function cacheGet<T = unknown>(key: string): Promise<T | null> {
  * @returns true if the key was deleted, false if it didn't exist
  */
 export async function cacheDelete(key: string): Promise<boolean> {
+  const fullKey = prefixKey(key);
   const client = await getRedisClient();
-  const result = await client.del(prefixKey(key));
-  return result > 0;
+  if (client) {
+    const result = await client.del(fullKey);
+    return result > 0;
+  } else {
+    return memoryCache.delete(fullKey);
+  }
 }
 
 /**
@@ -139,21 +185,34 @@ export async function cacheDelete(key: string): Promise<boolean> {
  */
 export async function cacheDeletePattern(pattern: string): Promise<number> {
   const client = await getRedisClient();
-  const fullPattern = prefixKey(pattern);
-  let cursor = 0;
-  let deletedCount = 0;
+  if (client) {
+    const fullPattern = prefixKey(pattern);
+    let cursor = 0;
+    let deletedCount = 0;
 
-  do {
-    const result = await client.scan(cursor, { MATCH: fullPattern, COUNT: 100 });
-    cursor = result.cursor;
+    do {
+      const result = await client.scan(cursor, { MATCH: fullPattern, COUNT: 100 });
+      cursor = result.cursor;
 
-    if (result.keys.length > 0) {
-      const deleted = await client.del(result.keys);
-      deletedCount += deleted;
+      if (result.keys.length > 0) {
+        const deleted = await client.del(result.keys);
+        deletedCount += deleted;
+      }
+    } while (cursor !== 0);
+
+    return deletedCount;
+  } else {
+    // In-memory fallback: simple prefix match
+    const prefix = prefixKey(pattern.replace('*', ''));
+    let deletedCount = 0;
+    for (const key of memoryCache.keys()) {
+      if (key.startsWith(prefix)) {
+        memoryCache.delete(key);
+        deletedCount++;
+      }
     }
-  } while (cursor !== 0);
-
-  return deletedCount;
+    return deletedCount;
+  }
 }
 
 /**
@@ -163,9 +222,20 @@ export async function cacheDeletePattern(pattern: string): Promise<number> {
  * @returns true if the key exists
  */
 export async function cacheExists(key: string): Promise<boolean> {
+  const fullKey = prefixKey(key);
   const client = await getRedisClient();
-  const result = await client.exists(prefixKey(key));
-  return result === 1;
+  if (client) {
+    const result = await client.exists(fullKey);
+    return result === 1;
+  } else {
+    const entry = memoryCache.get(fullKey);
+    if (!entry) return false;
+    if (Date.now() > entry.expiresAt) {
+      memoryCache.delete(fullKey);
+      return false;
+    }
+    return true;
+  }
 }
 
 /**
@@ -176,8 +246,16 @@ export async function cacheExists(key: string): Promise<boolean> {
  * @returns true if the TTL was set, false if key doesn't exist
  */
 export async function cacheExpire(key: string, ttlSeconds: number): Promise<boolean> {
+  const fullKey = prefixKey(key);
   const client = await getRedisClient();
-  return client.expire(prefixKey(key), ttlSeconds);
+  if (client) {
+    return client.expire(fullKey, ttlSeconds);
+  } else {
+    const entry = memoryCache.get(fullKey);
+    if (!entry) return false;
+    entry.expiresAt = Date.now() + ttlSeconds * 1000;
+    return true;
+  }
 }
 
 /**
@@ -187,8 +265,20 @@ export async function cacheExpire(key: string, ttlSeconds: number): Promise<bool
  * @returns The new value after increment
  */
 export async function cacheIncrement(key: string): Promise<number> {
+  const fullKey = prefixKey(key);
   const client = await getRedisClient();
-  return client.incr(prefixKey(key));
+  if (client) {
+    return client.incr(fullKey);
+  } else {
+    const entry = memoryCache.get(fullKey);
+    const current = entry ? parseInt(entry.value, 10) || 0 : 0;
+    const newVal = current + 1;
+    memoryCache.set(fullKey, {
+      value: String(newVal),
+      expiresAt: entry?.expiresAt ?? Date.now() + defaultConfig.defaultTtlSeconds * 1000,
+    });
+    return newVal;
+  }
 }
 
 // --- Session State Helpers ---
@@ -273,8 +363,9 @@ export async function deleteChatContext(chatSessionId: string): Promise<void> {
  */
 export async function checkCacheHealth(): Promise<boolean> {
   try {
-    if (!isConnected) return false;
     const client = await getRedisClient();
+    if (!client) return false;
+    if (!isConnected) return false;
     const result = await client.ping();
     return result === 'PONG';
   } catch {

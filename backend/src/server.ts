@@ -6,33 +6,48 @@
  */
 
 import app from './app';
+import { runMigration } from './utils/migrate';
+import { seedQuestions } from './utils/seed';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 
-const server = app.listen(PORT, HOST, () => {
-  console.log(`[Server] ACT AI Tutor API running on ${HOST}:${PORT}`);
-  console.log(`[Server] Health check: http://${HOST}:${PORT}/health`);
-  console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+async function start() {
+  // Run auto-migration before starting the server
+  try {
+    await runMigration();
+    await seedQuestions();
+  } catch (err: any) {
+    console.error('[Server] Migration/seed failed, starting anyway:', err.message);
+  }
 
-// ─── Graceful Shutdown ────────────────────────────────────────────────────────
-
-function gracefulShutdown(signal: string): void {
-  console.log(`[Server] ${signal} received. Shutting down gracefully...`);
-  server.close(() => {
-    console.log('[Server] HTTP server closed.');
-    process.exit(0);
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`[Server] ACT AI Tutor API running on ${HOST}:${PORT}`);
+    console.log(`[Server] Health check: http://${HOST}:${PORT}/health`);
+    console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 
-  // Force shutdown after 10 seconds
-  setTimeout(() => {
-    console.error('[Server] Forced shutdown after timeout.');
-    process.exit(1);
-  }, 10000);
+  // ─── Graceful Shutdown ────────────────────────────────────────────────────────
+
+  function gracefulShutdown(signal: string): void {
+    console.log(`[Server] ${signal} received. Shutting down gracefully...`);
+    server.close(() => {
+      console.log('[Server] HTTP server closed.');
+      process.exit(0);
+    });
+
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+      console.error('[Server] Forced shutdown after timeout.');
+      process.exit(1);
+    }, 10000);
+  }
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  return server;
 }
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-export default server;
+const serverPromise = start();
+export default serverPromise;

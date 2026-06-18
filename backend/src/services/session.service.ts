@@ -22,7 +22,7 @@ import { setSessionState, getSessionState } from '../utils/cache';
 export interface StartPracticeRequest {
   userId: string;
   section: SessionSection;
-  mode: 'section' | 'mixed';
+  mode: 'section' | 'mixed' | 'practice';
 }
 
 /** Cached session state stored in Redis for fast retrieval */
@@ -170,12 +170,12 @@ export async function startPracticeSession(
     return { message: 'Invalid section. Must be one of: english, math, reading, science, mixed' };
   }
 
-  if (!mode || !['section', 'mixed', 'practice'].includes(mode as string)) {
+  if (!mode || !['section', 'mixed', 'practice'].includes(mode)) {
     return { message: 'Invalid mode. Must be "section" or "mixed"' };
   }
 
   // Normalize 'practice' mode to 'section'
-  const normalizedMode: 'section' | 'mixed' = (mode as string) === 'mixed' ? 'mixed' : 'section';
+  const normalizedMode: 'section' | 'mixed' = mode === 'mixed' ? 'mixed' : 'section';
 
   // For section mode with a specific section, ensure it's not 'mixed'
   if (normalizedMode === 'section' && section === SessionSection.Mixed) {
@@ -217,7 +217,7 @@ export async function startPracticeSession(
     sessionId,
     userId,
     section,
-    mode,
+    mode: normalizedMode,
     questionIds,
     currentIndex: 0,
     startedAt: now.toISOString(),
