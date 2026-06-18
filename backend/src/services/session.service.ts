@@ -103,14 +103,26 @@ function getSectionFilter(section: SessionSection): Section | null {
 
 /**
  * Formats a Question record into a QuestionDelivery object (without revealing the answer).
+ * Uses snake_case keys to match the mobile client's expected format.
  */
 export function formatQuestionDelivery(question: Question): QuestionDelivery {
+  // Ensure options is always an array of strings for the mobile client
+  let optionsList: string[];
+  if (Array.isArray(question.options)) {
+    optionsList = question.options;
+  } else if (typeof question.options === 'object' && question.options !== null) {
+    // Convert object format {"A": "text", "B": "text"} to array ["A) text", "B) text"]
+    optionsList = Object.entries(question.options).map(([key, value]) => `${key}) ${value}`);
+  } else {
+    optionsList = [];
+  }
+
   return {
     questionId: question.question_id,
     section: question.section,
     questionText: question.question_text,
     passage: question.passage,
-    options: question.options,
+    options: optionsList,
     skillTag: question.skill_tag,
     difficulty: question.difficulty,
   };
