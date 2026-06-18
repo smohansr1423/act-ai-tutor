@@ -44,12 +44,12 @@ export interface StartPracticeResponse {
 
 /** A question delivered to the student (without correct answer) */
 export interface QuestionDelivery {
-  questionId: string;
+  question_id: string;
   section: Section;
-  questionText: string;
+  question_text: string;
   passage: string | null;
   options: string[];
-  skillTag: string;
+  skill_tag: string;
   difficulty: string;
 }
 
@@ -118,12 +118,12 @@ export function formatQuestionDelivery(question: Question): QuestionDelivery {
   }
 
   return {
-    questionId: question.question_id,
+    question_id: question.question_id,
     section: question.section,
-    questionText: question.question_text,
+    question_text: question.question_text,
     passage: question.passage,
     options: optionsList,
-    skillTag: question.skill_tag,
+    skill_tag: question.skill_tag,
     difficulty: question.difficulty,
   };
 }
