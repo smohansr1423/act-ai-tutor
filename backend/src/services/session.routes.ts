@@ -30,6 +30,7 @@ const router = Router();
  * Response 404: { error } - no questions available
  */
 router.post('/practice/start', async (req: Request, res: Response) => {
+  // v2: defaults mode to 'section' when not provided
   try {
     const { userId, section, mode } = req.body;
 
