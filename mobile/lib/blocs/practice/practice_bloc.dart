@@ -63,7 +63,14 @@ class PracticeBloc extends Bloc<PracticeEvent, PracticeState> {
       final questionJson = response['firstQuestion'] as Map<String, dynamic>?;
 
       if (questionJson != null) {
-        _currentQuestion = Question.fromJson(questionJson);
+        try {
+          _currentQuestion = Question.fromJson(questionJson);
+        } catch (parseError) {
+          emit(PracticeError(
+            message: 'Parse error: $parseError | Keys: ${questionJson.keys.toList()}',
+          ));
+          return;
+        }
         _startTimer();
         emit(PracticeQuestion(
           question: _currentQuestion!,
