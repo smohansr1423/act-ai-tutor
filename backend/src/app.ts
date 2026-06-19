@@ -109,13 +109,18 @@ app.use('/api/analytics', authenticate, parentDashboardRoutes);
 
 const publicPath = path.join(__dirname, '..', 'public');
 
-// Disable caching for HTML and JS to ensure fresh Flutter web app loads
+// Cache control for Flutter web app static files
 app.use(express.static(publicPath, {
   setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('flutter_service_worker.js')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
+    if (filePath.endsWith('flutter_service_worker.js')) {
+      // Service worker: allow conditional caching (no-cache validates with server, but doesn't force re-download)
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (filePath.endsWith('.html')) {
+      // HTML: short cache with revalidation to avoid reload loops
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (filePath.endsWith('.js') || filePath.endsWith('.wasm')) {
+      // JS and WASM assets are content-hashed by Flutter build — safe to cache
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     }
   }
 }));

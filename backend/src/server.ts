@@ -8,6 +8,7 @@
 import app from './app';
 import { runMigration } from './utils/migrate';
 import { seedQuestions } from './utils/seed';
+import { validateLLMConfig } from './services/llm.provider';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -20,6 +21,9 @@ async function start() {
   } catch (err: any) {
     console.error('[Server] Migration/seed failed, starting anyway:', err.message);
   }
+
+  // Validate LLM configuration (warning only — app still starts for non-AI features)
+  validateLLMConfig();
 
   const server = app.listen(PORT, HOST, () => {
     console.log(`[Server] ACT AI Tutor API running on ${HOST}:${PORT}`);
