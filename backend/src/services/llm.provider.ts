@@ -72,6 +72,20 @@ export class LLMProviderError extends Error {
 }
 
 /**
+ * Validates LLM configuration at startup.
+ * Logs a WARNING if LLM_API_KEY is not configured, or an info confirmation if it is.
+ * This is a warning only — the app should still start for non-AI features.
+ */
+export function validateLLMConfig(): void {
+  const apiKey = process.env.LLM_API_KEY;
+  if (!apiKey || apiKey.trim() === '') {
+    console.warn('WARNING: LLM_API_KEY is not configured. AI assistance features will be unavailable.');
+  } else {
+    console.log('[LLM] LLM_API_KEY is configured. AI assistance features are available.');
+  }
+}
+
+/**
  * Default LLM provider implementation using HTTP fetch to a configurable endpoint.
  * Supports OpenAI-compatible APIs.
  */
@@ -86,7 +100,21 @@ export class DefaultLLMProvider implements ILLMProvider {
     this.model = config?.model || process.env.LLM_MODEL || 'gpt-4';
   }
 
+  /**
+   * Check if the LLM provider is configured with a valid (non-empty) API key.
+   */
+  isConfigured(): boolean {
+    return this.apiKey.trim().length > 0;
+  }
+
   async complete(request: LLMCompletionRequest): Promise<LLMCompletionResponse> {
+    // Guard: throw immediately if API key is not configured
+    if (!this.isConfigured()) {
+      throw new LLMProviderError(
+        'AI assistance is unavailable: LLM_API_KEY is not configured'
+      );
+    }
+
     const timeoutMs = request.timeoutMs || 8000;
 
     const controller = new AbortController();
@@ -112,6 +140,12 @@ export class DefaultLLMProvider implements ILLMProvider {
       });
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new LLMProviderError(
+            'API key is invalid or unauthorized',
+            response.status
+          );
+        }
         throw new LLMProviderError(
           `LLM provider returned status ${response.status}: ${response.statusText}`,
           response.status
@@ -147,6 +181,13 @@ export class DefaultLLMProvider implements ILLMProvider {
   }
 
   async completeVision(request: LLMVisionRequest): Promise<LLMCompletionResponse> {
+    // Guard: throw immediately if API key is not configured
+    if (!this.isConfigured()) {
+      throw new LLMProviderError(
+        'AI assistance is unavailable: LLM_API_KEY is not configured'
+      );
+    }
+
     const timeoutMs = request.timeoutMs || 10000;
 
     const controller = new AbortController();
@@ -183,6 +224,12 @@ export class DefaultLLMProvider implements ILLMProvider {
       });
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new LLMProviderError(
+            'API key is invalid or unauthorized',
+            response.status
+          );
+        }
         throw new LLMProviderError(
           `LLM provider returned status ${response.status}: ${response.statusText}`,
           response.status

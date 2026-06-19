@@ -201,6 +201,10 @@ export async function startFullTest(
     return { error: 'No questions available for the selected section. Please try again later.' };
   }
 
+  if (questions.length < questionCount) {
+    return { error: `Insufficient questions available for ${section}. Required: ${questionCount}, Available: ${questions.length}` };
+  }
+
   // Shuffle for extra randomness
   const shuffledQuestions = shuffleArray(questions);
 
