@@ -61,9 +61,21 @@ class _PracticeScreenContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocListener<PracticeBloc, PracticeState>(
+      listenWhen: (previous, current) {
+        // Only navigate when transitioning TO PracticeQuestion from a non-question state
+        // This prevents re-pushing the route on every timer tick
+        // Also prevent re-navigation if we're already on the question screen
+        return current is PracticeQuestion && 
+               previous is! PracticeQuestion &&
+               previous is! PracticeResult;
+      },
       listener: (context, state) {
         if (state is PracticeQuestion) {
-          Navigator.pushNamed(context, AppRouter.practiceQuestion);
+          // Check if we're already on the practice question route to avoid duplicate pushes
+          final currentRoute = ModalRoute.of(context)?.settings.name;
+          if (currentRoute != AppRouter.practiceQuestion) {
+            Navigator.pushNamed(context, AppRouter.practiceQuestion);
+          }
         } else if (state is PracticeError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
