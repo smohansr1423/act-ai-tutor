@@ -7,6 +7,7 @@ import 'services/api_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/sync_service.dart';
 import 'blocs/auth/auth_bloc.dart';
+import 'blocs/chat/chat_bloc.dart';
 import 'blocs/practice/practice_bloc.dart';
 import 'blocs/sync/sync_bloc.dart';
 
@@ -52,6 +53,12 @@ class ActAiTutorApp extends StatelessWidget {
           ),
           BlocProvider<PracticeBloc>(
             create: (_) => PracticeBloc(apiService: apiService),
+          ),
+          BlocProvider<ChatBloc>(
+            create: (_) => ChatBloc(
+              apiService: apiService,
+              userId: 'anonymous',
+            ),
           ),
           BlocProvider<SyncBloc>(
             create: (_) => SyncBloc(syncService: syncService)
