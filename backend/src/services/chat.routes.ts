@@ -11,6 +11,54 @@ const router = Router();
 const chatService = new ChatService();
 
 /**
+ * POST /api/chat/message
+ * Handles text message to AI tutor.
+ *
+ * Body: { userId, sessionId, text }
+ * Response 200: { reply }
+ * Response 400: { error } - validation failures
+ * Response 500: { error } - internal server error
+ */
+router.post('/message', async (req: Request, res: Response) => {
+  try {
+    const { userId, sessionId, text } = req.body;
+
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return res.status(400).json({ error: 'text is required' });
+    }
+
+    if (text.length > 1000) {
+      return res.status(400).json({ error: 'Message exceeds 1000 character limit' });
+    }
+
+    const { DefaultLLMProvider: LLMProvider, LLMProviderError: ProviderError } = await import('./llm.provider');
+    const llm = new LLMProvider();
+
+    if (!llm.isConfigured()) {
+      return res.status(503).json({ error: 'AI assistance is currently unavailable. Please try again later.' });
+    }
+
+    const response = await llm.complete({
+      prompt: `You are a supportive ACT test tutor. Help the student with their ACT prep question. Be encouraging, clear, and concise. If they ask about a specific subject (English, Math, Reading, Science), tailor your response to ACT-style content.\n\nStudent: ${text.trim()}`,
+      maxTokens: 1000,
+      temperature: 0.7,
+      timeoutMs: 15000,
+    });
+
+    return res.status(200).json({ reply: response.content });
+  } catch (error: any) {
+    console.error('Chat message error:', error);
+    if (error?.name === 'LLMProviderError') {
+      return res.status(502).json({ error: error.message });
+    }
+    if (error?.name === 'LLMTimeoutError') {
+      return res.status(408).json({ error: 'Response timed out. Please try again.' });
+    }
+    return res.status(500).json({ error: 'Failed to get AI response. Please try again.' });
+  }
+});
+
+/**
  * POST /api/chat/image
  * Handles multipart image upload for question extraction.
  *
